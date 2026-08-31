@@ -106,6 +106,7 @@
 .forge-button { transition: transform 200ms var(--ease-soft), background-color 200ms var(--ease-soft); }
 .forge-button:hover { transform: translateY(-2px); background-color: var(--forest-500); }
 .forge-button:active { transform: translateY(0); }
+.forge-button:disabled:hover { transform: none; background-color: var(--primary); }
 
 @media (max-width: 640px) {
   .forge-shell { background-size: 48px 48px; }

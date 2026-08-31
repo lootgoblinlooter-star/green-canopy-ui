@@ -1,15 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { generateInterface, type GeneratedInterface } from "../lib/generate-ui.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "UI Forge — Interfaces from a single prompt" },
+      { title: "Dope UI — Interfaces from a single prompt" },
       {
         name: "description",
         content: "Describe your screen and forge a polished, production-ready interface you can refine, export, and ship.",
       },
-      { property: "og:title", content: "UI Forge — Interfaces from a single prompt" },
+      { property: "og:title", content: "Dope UI — Interfaces from a single prompt" },
       {
         property: "og:description",
         content: "Turn one prompt into a polished, production-ready interface.",
@@ -53,22 +55,35 @@ function MiniPreview({ className = "" }: { className?: string }) {
 
 function Index() {
   const [prompt, setPrompt] = useState("");
-  const [message, setMessage] = useState("Live preview · ready to forge");
+  const [message, setMessage] = useState("Live preview · ready to generate");
+  const [result, setResult] = useState<GeneratedInterface | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const runGeneration = useServerFn(generateInterface);
 
-  const generate = () => {
+  const generate = async () => {
     if (!prompt.trim()) {
       setMessage("Choose an example or describe an interface first");
       return;
     }
-    setMessage(`Forging “${prompt.trim()}” · draft queued`);
+    setIsGenerating(true);
+    setMessage(`Designing “${prompt.trim()}”…`);
+    try {
+      const generated = await runGeneration({ data: { prompt } });
+      setResult(generated);
+      setMessage(`${generated.name} · generated live`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Generation failed. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
     <div className="forge-shell min-h-screen overflow-hidden bg-background font-sans text-foreground antialiased">
       <header className="relative z-30 mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-5">
-        <a href="#forge" className="flex shrink-0 items-center gap-2.5" aria-label="UI Forge home">
-          <span className="grid size-8 place-items-center rounded-md bg-primary font-display text-sm text-primary-foreground">U</span>
-          <span className="font-display text-sm sm:text-base">UI Forge</span>
+        <a href="#forge" className="flex shrink-0 items-center gap-2.5" aria-label="Dope UI home">
+          <span className="grid size-8 place-items-center rounded-md bg-primary font-display text-sm text-primary-foreground">D</span>
+          <span className="font-display text-sm sm:text-base">Dope UI</span>
           <span className="hidden rounded-full border border-border px-2 py-0.5 text-[10px] font-medium uppercase text-forest-300 sm:inline">beta</span>
         </a>
 
@@ -93,7 +108,7 @@ function Index() {
           </h1>
 
           <p className="forge-rise rise-delay-2 mt-6 max-w-[46ch] text-pretty text-base text-muted-foreground sm:text-lg">
-            Describe the screen you need. UI Forge stamps production-ready components into finished layouts you can refine, export, and ship — no blank canvas.
+            Describe the screen you need. Dope UI turns it into a production-ready interface concept you can refine, export, and ship — no blank canvas.
           </p>
 
           <div className="forge-rise rise-delay-3 mt-9 w-full max-w-2xl">
@@ -102,14 +117,14 @@ function Index() {
               <input
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && generate()}
+                onKeyDown={(event) => event.key === "Enter" && void generate()}
                 type="text"
                 aria-label="Describe your interface"
                 placeholder="Describe the interface you want to build…"
                 className="min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
               />
-              <button type="button" onClick={generate} className="forge-button flex shrink-0 items-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground sm:px-4">
-                <span className="hidden sm:inline">Generate</span><span aria-hidden="true">→</span>
+              <button type="button" disabled={isGenerating} onClick={() => void generate()} className="forge-button flex shrink-0 items-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:cursor-wait disabled:opacity-60 sm:px-4">
+                <span className="hidden sm:inline">{isGenerating ? "Designing" : "Generate"}</span><span aria-hidden="true">→</span>
               </button>
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -133,15 +148,15 @@ function Index() {
             <div className="main-preview overflow-hidden rounded-2xl border border-border bg-surface-strong backdrop-blur-xl">
               <div className="flex items-center gap-2 border-b border-border px-4 py-3">
                 <span className="size-2.5 rounded-full bg-forest-300/70" /><span className="size-2.5 rounded-full bg-forest-500/70" /><span className="size-2.5 rounded-full bg-forest-600/70" />
-                <span className="ml-2 text-xs text-muted-foreground">forge / checkout-screen</span>
+                <span className="ml-2 text-xs text-muted-foreground">dope / {result?.category ?? "interface-preview"}</span>
               </div>
               <div className="space-y-3 p-4 text-left">
-                <div className="flex items-center justify-between"><div className="h-2 w-28 rounded-full bg-forest-300/70" /><div className="flex gap-1.5"><span className="h-4 w-14 rounded bg-forest-600/50" /><span className="h-4 w-10 rounded bg-forest-800/70" /></div></div>
+                <div className="flex items-center justify-between gap-3"><div className="truncate text-sm font-semibold text-forest-300">{result?.headline ?? "Your generated interface"}</div><div className="flex shrink-0 gap-1.5">{(result?.navigation ?? ["Home", "Explore"]).slice(0, 2).map((item) => <span key={item} className="rounded bg-forest-600/50 px-2 py-1 text-[9px]">{item}</span>)}</div></div>
                 <div className="grid grid-cols-3 gap-2">
-                  {[0, 1, 2].map((item) => <div key={item} className="rounded-lg bg-forest-800/60 p-2.5"><div className="h-1.5 w-10 rounded-full bg-forest-500/50" /><div className="mt-2 h-2 w-14 max-w-full rounded-full bg-forest-300/60" /></div>)}
+                  {(result?.cards ?? [{ label: "Layout", value: "Responsive" }, { label: "Components", value: "Ready" }, { label: "Status", value: "Live" }]).map((card) => <div key={card.label} className="min-w-0 rounded-lg bg-forest-800/60 p-2.5"><div className="truncate text-[9px] text-muted-foreground">{card.label}</div><div className="mt-1 truncate text-xs font-semibold text-forest-300">{card.value}</div></div>)}
                 </div>
-                <div className="space-y-1.5 rounded-lg bg-forest-800/40 p-3"><div className="h-1.5 w-24 rounded-full bg-forest-300/40" /><div className="h-1.5 w-32 rounded-full bg-forest-500/30" /></div>
-                <div className="flex items-center justify-between gap-3"><div className="h-1.5 flex-1 rounded-full bg-forest-500/30" /><div className="h-7 w-24 rounded-md bg-primary" /></div>
+                <div className="min-h-12 rounded-lg bg-forest-800/40 p-3 text-xs text-muted-foreground">{result?.supportingText ?? "Your AI-generated interface concept will appear here."}</div>
+                <div className="flex items-center justify-between gap-3"><div className="h-1.5 flex-1 rounded-full bg-forest-500/30" /><div className="rounded-md bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground">{result?.primaryAction ?? "Get started"}</div></div>
               </div>
             </div>
             <p aria-live="polite" className="mt-3 text-center text-xs text-muted-foreground">{message}</p>
